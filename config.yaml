@@ -1,0 +1,52 @@
+universe:
+  etfs: [XLK, XLF, XLE, XLV, XLC, XLI, XLY, XLP, XLRE, XLB, XLU]
+  benchmark: SPY
+
+data:
+  start_date: "2015-10-08"       # XLRE inception date — safe start for full universe
+  end_date: "2024-12-31"
+  cache_dir: "data/cache"
+  price_col: "Adj Close"
+  missing_threshold: 0.02        # drop dates where >2% of assets are missing
+
+storage:
+  backend: "sqlite"             # options: "parquet" | "sqlite" | "sqlserver" | "s3"
+  
+  # SQLite - used when backend = "sqlite"
+  sqlite:
+    path: "data/portfolio.db"
+    table_prices: "etf_prices"
+    table_returns: "etf_returns"
+
+  # SQL Server (local or RDS) — used when backend = "sqlserver"
+  sqlserver:
+    host: "localhost"
+    port: 1433
+    database: "portfolio_db"
+    username: ""                 # set in .env as DB_USERNAME
+    password: ""                 # set in .env as DB_PASSWORD
+    driver: "ODBC Driver 18 for SQL Server"
+    table_prices: "etf_prices"
+    table_returns: "etf_returns"
+
+  # S3 — used when backend = "s3"
+  s3:
+    bucket: "my-portfolio-data"
+    prefix: "cache/"
+    region: "us-east-1"
+
+optimizer:
+  lookback_days: 252             # 1 year of trading days for covariance estimation
+  rebalance_frequency: "monthly" # "monthly" | "quarterly"
+  weight_min: 0.0                # long-only
+  weight_max: 0.30               # max 30% in any single ETF
+  transaction_cost_bps: 5        # 5 basis points per trade
+
+performance:
+  risk_free_rate: 0.05           # annualized, loaded from .env if set there
+
+alerts:
+  rebalance_trigger: "calendar"  # "calendar" | "drift"
+  drift_threshold: 0.05          # for drift mode: rebalance if any weight drifts >5%
+  email_to: ""                   # set in .env as ALERT_EMAIL_TO
+  email_from: ""                 # set in .env as ALERT_EMAIL_FROM

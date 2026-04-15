@@ -1,0 +1,65 @@
+services:
+
+  # ---------------------------------------------------------
+  # Check today's rebalance signal (default mode)
+  # Usage: docker compose run --rm signal
+  # ---------------------------------------------------------
+  signal:
+    build: .
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+    command: python -m src.main run-signal --value 10000
+
+  # ---------------------------------------------------------
+  # Daily scheduler daemon
+  # Usage: docker compose up scheduler
+  # ---------------------------------------------------------
+  scheduler:
+    build: .
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+    command: python -m src.main run-scheduler --value 10000
+    restart: unless-stopped
+
+  # ---------------------------------------------------------
+  # One-off tools (run with: docker compose run --rm <name>)
+  # ---------------------------------------------------------
+  data:
+    build: .
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+    command: python -m src.main run-data
+    profiles: ["tools"]
+
+  backtest:
+    build: .
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+    command: python -m src.main run-backtest
+    profiles: ["tools"]
+
+  report:
+    build: .
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+    command: python -m src.main run-report
+    profiles: ["tools"]
+
+  sweep:
+    build: .
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+    command: python -m src.main run-sweep
+    profiles: ["tools"]

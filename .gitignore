@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+data/cache/
+data/charts/
+data/reports/
+*.parquet
+*.db
+*.sqbpro
+.spyproject/
