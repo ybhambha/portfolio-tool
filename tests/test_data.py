@@ -118,3 +118,15 @@ class TestReturns:
         # For daily returns, log ≈ simple; correlation should be very high
         corr = lr["XLK"].corr(sr["XLK"])
         assert corr > 0.999
+
+
+def test_config_local_override(tmp_path):
+    import shutil, yaml
+    from src.config import load_config
+    shutil.copy("config.yaml", tmp_path / "config.yaml")
+    (tmp_path / "config.local.yaml").write_text(
+        yaml.safe_dump({"fidelity": {"rebalance": {"managed_accounts": ["Z1"]}}}))
+    cfg = load_config(str(tmp_path / "config.yaml"))
+    assert cfg.fidelity.rebalance.managed_accounts == ["Z1"]
+    assert cfg.fidelity.rebalance.drift_band == 0.02      # untouched keys kept
+    assert len(cfg.data.end_date) == 10                   # "today" resolved
