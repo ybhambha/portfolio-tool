@@ -204,6 +204,15 @@ def build_rebalance_plan(
 
     universe = list(s.static_targets) if s.target_mode == "static" else (
         s.model_universe or [t for t in held.index if t in adj_close.columns])
+    short_history: list[str] = []
+    if s.target_mode == "mvo":
+        # Holdings with too little price history can't be optimized — hold them, don't sell them
+        window = adj_close.tail(s.lookback_days + 1)
+        enough = window.notna().sum() >= 0.8 * len(window)
+        short_history = [t for t in universe if not bool(enough.get(t, False))]
+        if short_history:
+            logger.warning(f"Too little price history to optimize, held as-is: {short_history}")
+        universe = [t for t in universe if t not in short_history]
     if s.target_mode == "mvo" and len(universe) > s.max_mvo_assets:
         raise ValueError(
             f"{len(universe)} holdings is too many to optimize with MVO (limit {s.max_mvo_assets}). "
@@ -363,6 +372,7 @@ def build_rebalance_plan(
         "unmanaged": unmanaged if s.unmanaged == "hold" else [],
         "unmanaged_value": unmanaged_value,
         "excluded_managed_value": excluded_value,
+        "short_history": short_history,
         "n_trades": len(trade_df),
         "buy_value": float(trade_df.loc[trade_df["action"] == "BUY", "est_value"].sum()),
         "sell_value": float(-trade_df.loc[trade_df["action"] == "SELL", "est_value"].sum()),

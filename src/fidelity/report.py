@@ -197,6 +197,9 @@ def generate_fidelity_report(
         if s.get("excluded_managed_value"):
             parts.append(f"<p class='note'>Advisor-managed sleeves/accounts excluded from rebalancing: "
                          f"{_usd(s['excluded_managed_value'])}.</p>")
+        if s.get("short_history"):
+            parts.append(f"<p class='note'>Too little price history to optimize, held as-is: "
+                         f"{html.escape(', '.join(s['short_history']))}.</p>")
         if s["unmanaged"]:
             parts.append(f"<p class='note'>Held outside the model and left untouched: "
                          f"{html.escape(', '.join(s['unmanaged']))} ({_usd(s['unmanaged_value'])}).</p>")

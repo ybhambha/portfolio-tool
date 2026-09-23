@@ -358,3 +358,13 @@ def test_mvo_refuses_huge_universe():
     s = RebalanceSettings(target_mode="mvo", max_mvo_assets=2)
     with pytest.raises(ValueError, match="too many"):
         build_rebalance_plan(load_positions_csv(POS_CSV), synthetic_market()["adj_close"], s)
+
+
+def test_short_history_holdings_are_held_not_sold():
+    md = synthetic_market()
+    adj = md["adj_close"].copy()
+    adj.loc[adj.index[:-60], "XLV"] = np.nan          # XLV only ~3 months old
+    s = RebalanceSettings(target_mode="mvo", weight_max=0.6, drift_band=0.0, max_turnover=1.0)
+    plan = build_rebalance_plan(load_positions_csv(POS_CSV), adj, s)
+    assert "XLV" not in set(plan["trades"]["ticker"])
+    assert plan["summary"]["short_history"] == ["XLV"]
