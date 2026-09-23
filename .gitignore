@@ -11,3 +11,4 @@ data/reports/
 *.db
 *.sqbpro
 .spyproject/data/fidelity/
+config.local.yaml

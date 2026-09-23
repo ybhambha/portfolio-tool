@@ -1,0 +1,5 @@
+# Copy to config.local.yaml (git-ignored) for private settings.
+# Anything here overrides the same key in config.yaml.
+fidelity:
+  rebalance:
+    managed_accounts: ["Z00000000"]   # your advisor-managed account numbers

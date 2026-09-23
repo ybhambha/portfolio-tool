@@ -225,6 +225,12 @@ docker push \
 | `transaction_cost_bps` | 5 | Cost per trade in basis points |
 | `risk_free_rate` | 0.05 | Annualized risk-free rate |
 
+### config.local.yaml (private, git-ignored)
+
+Personal settings such as Fidelity account numbers go in `config.local.yaml`
+(copy `config.local.example.yaml`). It is merged over `config.yaml` at load
+time and never committed.
+
 ### .env secrets
 
 ```bash
@@ -244,7 +250,7 @@ DB_PASSWORD=yourpassword
 pytest tests/ -v
 ```
 
-68 tests across all phases (23 for the Fidelity module, no network needed). All should pass.
+Run the full suite with `pytest tests/ -v`; the Fidelity tests need no network.
 
 ---
 

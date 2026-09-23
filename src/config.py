@@ -7,6 +7,7 @@ Uses Pydantic for validation so bad config values fail fast with clear messages.
 
 import os
 import yaml
+from datetime import date
 from dotenv import load_dotenv
 from pydantic import BaseModel, field_validator
 
@@ -69,6 +70,10 @@ class DataConfig(BaseModel):
     end_date: str
     price_col: str = "Adj Close"
     missing_threshold: float = 0.02
+
+    def model_post_init(self, __context):
+        if self.end_date.lower() == "today":
+            self.end_date = date.today().strftime("%Y-%m-%d")
 
 
 class OptimizerConfig(BaseModel):
@@ -171,10 +176,24 @@ class AppConfig(BaseModel):
         return self.universe.etfs + [self.universe.benchmark]
 
 
+def _deep_merge(base: dict, override: dict) -> dict:
+    out = dict(base)
+    for k, v in override.items():
+        out[k] = _deep_merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
+
+
 def load_config(path: str = "config.yaml") -> AppConfig:
     """Load and validate the full application config."""
     with open(path) as f:
         raw = yaml.safe_load(f)
+
+    # Private overrides (account numbers etc.) live in config.local.yaml next to
+    # config.yaml. It is git-ignored so personal details never reach GitHub.
+    local_path = os.path.join(os.path.dirname(os.path.abspath(path)), "config.local.yaml")
+    if os.path.exists(local_path):
+        with open(local_path) as f:
+            raw = _deep_merge(raw, yaml.safe_load(f) or {})
 
     config = AppConfig(
         universe=raw["universe"],

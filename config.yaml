@@ -4,7 +4,7 @@ universe:
 
 data:
   start_date: "2015-10-08"       # XLRE inception date — safe start for full universe
-  end_date: "2024-12-31"
+  end_date: "today"            # or a fixed "YYYY-MM-DD"
   cache_dir: "data/cache"
   price_col: "Adj Close"
   missing_threshold: 0.02        # drop dates where >2% of assets are missing
@@ -70,7 +70,7 @@ fidelity:
     static_targets: {}           # used when target_mode = static, e.g. {VTI: 0.6, BND: 0.4}
     unmanaged: "hold"            # holdings outside the model: "hold" (leave alone) | "sell"
     accounts: []                 # restrict to account numbers/names; empty = all
-    managed_accounts: []         # advisor-managed account numbers to leave alone
+    managed_accounts: []         # advisor-managed accounts to leave alone — put real numbers in config.local.yaml
     exclude_managed_sleeves: true # skip Fidelity Strategic Advisers SMA sleeves
     max_mvo_assets: 40           # MVO refuses larger universes (set model_universe instead)
     cash_target_pct: 0.02
