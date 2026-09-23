@@ -1,0 +1,13 @@
+Account Number,Account Name,Symbol,Description,Quantity,Last Price,Last Price Change,Current Value,Today's Gain/Loss Dollar,Today's Gain/Loss Percent,Total Gain/Loss Dollar,Total Gain/Loss Percent,Percent Of Account,Cost Basis Total,Average Cost Basis,Type
+Z11111111,Individual,SPAXX**,HELD IN MONEY MARKET,,,,$2500.00,,,,,5.00%,,,Cash,
+Z11111111,Individual,XLK,SELECT SECTOR SPDR TR TECHNOLOGY,100,$250.00,+$1.20,"$25,000.00",+$120.00,+0.48%,"+$5,000.00",+25.00%,50.00%,"$20,000.00",$200.00,Cash,
+Z11111111,Individual,XLE,SELECT SECTOR SPDR TR ENERGY,200,$90.00,-$0.50,"$18,000.00",-$100.00,-0.55%,"-$2,000.00",-10.00%,36.00%,"$20,000.00",$100.00,Cash,
+Z11111111,Individual,Pending Activity,,,,,-$500.00,,,,,,,,,
+222222222,ROTH IRA,FZFXX**,HELD IN MONEY MARKET,,,,$1000.00,,,,,2.00%,,,Cash,
+222222222,ROTH IRA,XLK,SELECT SECTOR SPDR TR TECHNOLOGY,40,$250.00,+$1.20,"$10,000.00",+$48.00,+0.48%,"+$2,000.00",+25.00%,60.00%,"$8,000.00",$200.00,Cash,
+222222222,ROTH IRA,XLV,SELECT SECTOR SPDR TR HEALTH CARE,40,$140.00,+$0.10,"$5,600.00",+$4.00,+0.07%,--,--,34.00%,--,--,Cash,
+
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution."
+"Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917."
+
+"Date downloaded 09/22/2026 5:01 PM ET"

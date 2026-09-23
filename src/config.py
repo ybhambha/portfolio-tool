@@ -99,6 +99,60 @@ class PerformanceConfig(BaseModel):
             self.risk_free_rate = float(env_val)
 
 
+class FidelityRebalanceConfig(BaseModel):
+    target_mode: str = "mvo"                  # "mvo" | "static"
+    model_universe: list[str] = []            # empty → optimize over current holdings
+    static_targets: dict[str, float] = {}
+    unmanaged: str = "hold"                   # "hold" | "sell"
+    accounts: list[str] = []                  # empty → all accounts
+    managed_accounts: list[str] = []          # advisor-managed accounts to leave untouched
+    exclude_managed_sleeves: bool = True      # skip Fidelity Strategic Advisers SMA sleeves
+    max_mvo_assets: int = 40
+    cash_target_pct: float = 0.02
+    drift_band: float = 0.02
+    min_trade_usd: float = 100.0
+    max_turnover: float = 0.30
+    fractional_shares: bool = False
+    avoid_short_term_gains: bool = True
+    tlh_loss_pct: float = 0.05
+    tlh_min_usd: float = 250.0
+    risk_aversion: float = 1.0
+
+    @field_validator("target_mode")
+    @classmethod
+    def validate_mode(cls, v):
+        if v not in {"mvo", "static"}:
+            raise ValueError("fidelity.rebalance.target_mode must be 'mvo' or 'static'")
+        return v
+
+    @field_validator("unmanaged")
+    @classmethod
+    def validate_unmanaged(cls, v):
+        if v not in {"hold", "sell"}:
+            raise ValueError("fidelity.rebalance.unmanaged must be 'hold' or 'sell'")
+        return v
+
+
+class FidelityConfig(BaseModel):
+    source: str = "auto"                      # "snaptrade" | "csv" | "auto"
+    csv_dir: str = "data/fidelity"            # where Fidelity downloads are saved
+    positions_glob: str = "Portfolio_Positions*.csv"
+    history_glob: str = "Accounts_History*.csv"
+    snaptrade_broker: str = "FIDELITY"
+    history_start: str | None = None          # None → earliest available
+    analytics_lookback_days: int = 756
+    account_types: dict[str, str] = {}        # override: {"Z12345678": "tax_deferred"}
+    output_dir: str = "data/reports"
+    rebalance: FidelityRebalanceConfig = FidelityRebalanceConfig()
+
+    @field_validator("source")
+    @classmethod
+    def validate_source(cls, v):
+        if v not in {"snaptrade", "csv", "auto"}:
+            raise ValueError("fidelity.source must be 'snaptrade', 'csv' or 'auto'")
+        return v
+
+
 # ---------------------------------------------------------------------------
 # Root config
 # ---------------------------------------------------------------------------
@@ -110,6 +164,7 @@ class AppConfig(BaseModel):
     optimizer: OptimizerConfig
     alerts: AlertsConfig
     performance: PerformanceConfig
+    fidelity: FidelityConfig = FidelityConfig()
 
     @property
     def all_tickers(self) -> list[str]:
@@ -128,5 +183,6 @@ def load_config(path: str = "config.yaml") -> AppConfig:
         optimizer=raw.get("optimizer", {}),
         alerts=raw.get("alerts", {}),
         performance=raw.get("performance", {}),
+        fidelity=raw.get("fidelity") or {},
     )
     return config

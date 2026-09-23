@@ -241,6 +241,82 @@ def run_sweep(
 
 
 # ---------------------------------------------------------------------------
+# Fidelity personal portfolio
+# ---------------------------------------------------------------------------
+
+@app.command()
+def fidelity_connect(
+    config: str = typer.Option("config.yaml", help="Path to config.yaml"),
+    reconnect: str = typer.Option(None, help="Connection id to re-authorize (if it expired)"),
+):
+    """Print a SnapTrade link to connect your Fidelity login (read-only)."""
+    from src.config import load_config
+    from src.fidelity.snaptrade_source import SnapTradeFidelity
+    cfg = load_config(config)
+    st = SnapTradeFidelity(broker_slug=cfg.fidelity.snaptrade_broker)
+    print("\nOpen this link, choose Fidelity and log in (read-only access):\n")
+    print(st.connection_link(reconnect=reconnect))
+    print("\nThen run: python -m src.main fidelity-report\n")
+
+
+@app.command()
+def fidelity_positions(
+    config: str = typer.Option("config.yaml", help="Path to config.yaml"),
+    source: str = typer.Option(None, help="snaptrade | csv (default: config)"),
+    positions_csv: str = typer.Option(None, help="Explicit Fidelity positions CSV"),
+):
+    """Show current Fidelity positions across all accounts."""
+    import pandas as pd
+    from src.config import load_config
+    from src.fidelity.pipeline import load_fidelity_data
+    cfg = load_config(config)
+    pos, acts, label = load_fidelity_data(cfg, source, positions_csv)
+    total = pos["market_value"].sum()
+    view = pos.assign(weight=pos["market_value"] / total)[
+        ["account_name", "account_type", "ticker", "quantity", "price", "market_value", "cost_basis", "weight"]]
+    with pd.option_context("display.max_rows", 500, "display.width", 160,
+                           "display.float_format", "{:,.2f}".format):
+        print(f"\nSource: {label}\n")
+        print(view.sort_values("market_value", ascending=False).to_string(index=False))
+    print(f"\nTotal: ${total:,.2f} across {pos['account_id'].nunique()} account(s); "
+          f"{len(acts)} transactions loaded")
+
+
+@app.command()
+def fidelity_report(
+    config: str = typer.Option("config.yaml", help="Path to config.yaml"),
+    source: str = typer.Option(None, help="snaptrade | csv (default: config)"),
+    positions_csv: str = typer.Option(None, help="Explicit Fidelity positions CSV"),
+    history_csv: list[str] = typer.Option(None, help="Fidelity history CSV(s); repeat the flag for several"),
+    rebalance: bool = typer.Option(True, help="Include the rebalance trade list"),
+    output: str = typer.Option(None, help="Output HTML path"),
+):
+    """Performance + risk report and rebalance trade list for your Fidelity accounts."""
+    import os
+    from src.config import load_config
+    from src.fidelity.pipeline import run_fidelity
+    cfg = load_config(config)
+    res = run_fidelity(cfg, source=source, positions_csv=positions_csv,
+                       history_csv=history_csv or None, rebalance=rebalance, output=output)
+    r, p = res["realized"], res["plan"]
+    print(f"\nSource: {res['source']} | value ${res['positions']['market_value'].sum():,.0f}")
+    if r:
+        mwr = f"{r['mwr']:.2%}" if r["mwr"] is not None else "n/a"
+        print(f"TWR {r['twr']:.2%} (bench {r['bench_twr']:.2%}) | money-weighted {mwr} | "
+              f"since {r['start']:%Y-%m-%d}")
+    if p is not None:
+        s = p["summary"]
+        print(f"Rebalance: {s['n_trades']} trades | turnover {s['turnover']:.1%} | "
+              f"est. taxable gain ${s['est_realized_gain']:,.0f}")
+        if not p["trades"].empty:
+            print(p["trades"][["account_name", "action", "ticker", "shares", "est_value", "note"]]
+                  .to_string(index=False))
+    for w in res["warnings"]:
+        print(f"  note: {w}")
+    print(f"\nReport: {os.path.abspath(res['report'])}")
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 

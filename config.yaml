@@ -50,3 +50,35 @@ alerts:
   drift_threshold: 0.05          # for drift mode: rebalance if any weight drifts >5%
   email_to: ""                   # set in .env as ALERT_EMAIL_TO
   email_from: ""                 # set in .env as ALERT_EMAIL_FROM
+
+# ---------------------------------------------------------------------------
+# Fidelity personal portfolio (python -m src.main fidelity-report)
+# ---------------------------------------------------------------------------
+fidelity:
+  source: "auto"                 # "snaptrade" | "csv" | "auto" (SnapTrade if keys in .env, else CSV)
+  csv_dir: "data/fidelity"       # drop Fidelity downloads here
+  positions_glob: "Portfolio_Positions*.csv"
+  history_glob: "Accounts_History*.csv"
+  history_start: null            # e.g. "2024-01-01"; null = all available history
+  analytics_lookback_days: 756   # 3 years for the holdings risk profile
+  account_types: {}              # override auto-detection, e.g. {"Z12345678": "tax_deferred"}
+  output_dir: "data/reports"
+
+  rebalance:
+    target_mode: "mvo"           # "mvo" (uses optimizer: settings above) | "static"
+    model_universe: []           # empty = optimize across what you hold today
+    static_targets: {}           # used when target_mode = static, e.g. {VTI: 0.6, BND: 0.4}
+    unmanaged: "hold"            # holdings outside the model: "hold" (leave alone) | "sell"
+    accounts: []                 # restrict to account numbers/names; empty = all
+    managed_accounts: []         # advisor-managed account numbers to leave alone
+    exclude_managed_sleeves: true # skip Fidelity Strategic Advisers SMA sleeves
+    max_mvo_assets: 40           # MVO refuses larger universes (set model_universe instead)
+    cash_target_pct: 0.02
+    drift_band: 0.02             # only trade positions >2% away from target
+    min_trade_usd: 100
+    max_turnover: 0.30           # one-way, fraction of managed value
+    fractional_shares: false
+    avoid_short_term_gains: true # don't sell taxable lots <1 yr old at a gain (needs lot data)
+    tlh_loss_pct: 0.05           # flag taxable positions down ≥5% …
+    tlh_min_usd: 250             # … and ≥ $250 as tax-loss-harvest candidates
+    risk_aversion: 1.0
