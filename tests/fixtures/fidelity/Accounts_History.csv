@@ -1,0 +1,14 @@
+
+
+Run Date,Account,Account Number,Action,Symbol,Description,Type,Quantity,Price ($),Commission ($),Fees ($),Accrued Interest ($),Amount ($),Cash Balance ($),Settlement Date
+09/15/2026,"Individual",Z11111111,"YOU BOUGHT SELECT SECTOR SPDR TR ENERGY (XLE) (Cash)",XLE,"SELECT SECTOR SPDR TR ENERGY",Cash,50,88.00,,,,-4400.00,2500.00,09/16/2026
+08/29/2026,"Individual",Z11111111,"DIVIDEND RECEIVED SELECT SECTOR SPDR TR TECHNOLOGY (XLK) (Cash)",XLK,"SELECT SECTOR SPDR TR TECHNOLOGY",Cash,,,,,,55.00,6900.00,
+08/29/2026,"Individual",Z11111111,"REINVESTMENT FIDELITY GOVERNMENT MONEY MARKET (SPAXX) (Cash)",SPAXX,"FIDELITY GOVERNMENT MONEY MARKET",Cash,55,1,,,,-55.00,6900.00,
+07/01/2026,"Individual",Z11111111,"Electronic Funds Transfer Received (Cash)",,"No Description",Cash,,,,,,5000.00,6845.00,
+06/10/2026,"ROTH IRA",222222222,"YOU SOLD SELECT SECTOR SPDR TR HEALTH CARE (XLV) (Cash)",XLV,"SELECT SECTOR SPDR TR HEALTH CARE",Cash,-10,135.00,,0.02,,1349.98,1349.98,06/11/2026
+03/02/2026,"Individual",Z11111111,"YOU BOUGHT SELECT SECTOR SPDR TR TECHNOLOGY (XLK) (Cash)",XLK,"SELECT SECTOR SPDR TR TECHNOLOGY",Cash,20,220.00,,,,-4400.00,1845.00,03/03/2026
+
+
+
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution."
+"Date downloaded 09/22/2026 5:02 PM ET"

@@ -35,7 +35,8 @@ portfolio_tool/
 │   ├── optimizer/           ← Phase 2: MVO engine
 │   ├── backtest/            ← Phase 3: backtesting
 │   ├── reporting/           ← Phase 4: HTML report
-│   └── alerts/              ← Phase 5: trade signals & email
+│   ├── alerts/              ← Phase 5: trade signals & email
+│   └── fidelity/            ← Fidelity positions, performance, rebalance
 ├── tests/                   ← pytest unit tests
 ├── data/
 │   ├── cache/               ← parquet price cache
@@ -115,6 +116,59 @@ python -m src.main run-scheduler
 
 ---
 
+## Fidelity Personal Portfolio
+
+Pulls your real Fidelity positions and history, measures performance, and
+produces a tax-aware rebalance trade list from the same MVO engine.
+**Read-only — it never places orders**; you review and trade in Fidelity.
+
+### Data source (pick one)
+
+**A. SnapTrade API (automatic)** — Fidelity has no public retail API; SnapTrade
+connects through Fidelity's own login.
+
+```bash
+# 1. Free personal key at https://dashboard.snaptrade.com → add to .env:
+#    SNAPTRADE_CLIENT_ID=...  SNAPTRADE_CONSUMER_KEY=...
+python -m src.main fidelity-connect      # open link, log in to Fidelity (read-only)
+python -m src.main fidelity-positions    # sanity check
+```
+
+**B. CSV export (no third party)** — save into `data/fidelity/`:
+- Positions → Download → `Portfolio_Positions_*.csv`
+- Activity & Orders → History → Download → `Accounts_History*.csv` (download
+  several date ranges if you like; duplicates are removed)
+
+`fidelity.source: auto` uses SnapTrade when keys are in `.env`, otherwise CSV.
+
+### Run
+
+```bash
+python -m src.main fidelity-report                       # report + trade list
+python -m src.main fidelity-report --source csv --no-rebalance
+```
+
+Outputs in `data/reports/`: `fidelity_report_YYYYMMDD.html`,
+`fidelity_trades_YYYYMMDD.csv`, `fidelity_positions_YYYYMMDD.csv`.
+
+### What's in the report
+
+| Section | Method |
+|---|---|
+| Holdings | All accounts, cost basis, unrealized gain, account tax type |
+| Realized performance | Daily holdings rebuilt **backwards from today's shares** using the history (so partial history still reconciles). Time-weighted return, money-weighted (XIRR), benchmark over the same dates, and a public-market-equivalent: the same cash flows put into SPY |
+| Risk profile | Today's weights on 3 years of prices: CAGR, vol, Sharpe, drawdown, beta, tracking error, risk contribution per holding |
+| Rebalance | MVO (Ledoit-Wolf) or static targets → drift band, min trade, turnover cap, cash buffer. Sells come from IRAs/Roth first, then taxable lots with losses; buys go where the cash is. Flags estimated gains, short-term lots, wash sales, and tax-loss-harvest candidates |
+
+Configure under `fidelity:` in `config.yaml` (model universe, static targets,
+bands, accounts to include, account-type overrides).
+
+**Limits:** options and individual bonds are reported but not modelled;
+short/long-term tax splits need lot dates (SnapTrade paid tier). Fidelity CSVs
+only give average cost; tax figures are estimates, not tax advice.
+
+---
+
 ## Docker
 
 ### Build and run locally
@@ -190,7 +244,7 @@ DB_PASSWORD=yourpassword
 pytest tests/ -v
 ```
 
-45 tests across all phases. All should pass.
+68 tests across all phases (23 for the Fidelity module, no network needed). All should pass.
 
 ---
 
