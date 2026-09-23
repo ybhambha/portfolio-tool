@@ -10,5 +10,7 @@ data/reports/
 *.parquet
 *.db
 *.sqbpro
-.spyproject/data/fidelity/
+.spyproject/
+data/fidelity/
 config.local.yaml
+Claude outputs/
