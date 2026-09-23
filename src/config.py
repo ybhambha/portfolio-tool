@@ -105,6 +105,9 @@ class FidelityRebalanceConfig(BaseModel):
     static_targets: dict[str, float] = {}
     unmanaged: str = "hold"                   # "hold" | "sell"
     accounts: list[str] = []                  # empty → all accounts
+    managed_accounts: list[str] = []          # advisor-managed accounts to leave untouched
+    exclude_managed_sleeves: bool = True      # skip Fidelity Strategic Advisers SMA sleeves
+    max_mvo_assets: int = 40
     cash_target_pct: float = 0.02
     drift_band: float = 0.02
     min_trade_usd: float = 100.0

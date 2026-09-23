@@ -315,3 +315,46 @@ def test_end_to_end_report(tmp_path):
     html = out.read_text()
     for section in ["Holdings (all accounts)", "Realized performance", "Proposed rebalance"]:
         assert section in html
+
+
+# ---------------------------------------------------------------------------
+# Real-export quirks
+# ---------------------------------------------------------------------------
+
+def test_history_dedupe_keeps_real_repeats(tmp_path):
+    hdr = ("\n\nRun Date,Account,Account Number,Action,Symbol,Description,Type,Price ($),Quantity,"
+           "Commission ($),Fees ($),Accrued Interest ($),Amount ($),Settlement Date\n")
+    row = '06/30/2026,ROTH IRA,Y1,YOU BOUGHT X (XLK) (Cash),XLK,X,Cash,100,1,"","","",-100,""\n'
+    other = '06/29/2026,ROTH IRA,Y1,YOU SOLD X (XLE) (Cash),XLE,X,Cash,50,-2,"","","",100,""\n'
+    f1 = tmp_path / "Accounts_History.csv"; f1.write_text(hdr + row + row + other)     # 2 genuine fills
+    f2 = tmp_path / "Accounts_History (1).csv"; f2.write_text(hdr + row + row)          # overlap
+    a = load_activity_csv([str(f1), str(f2)])
+    assert (a["ticker"] == "XLK").sum() == 2 and (a["ticker"] == "XLE").sum() == 1
+
+
+def test_corporate_action_share_moves(tmp_path):
+    hdr = ("Run Date,Account,Account Number,Action,Symbol,Description,Type,Price ($),Quantity,"
+           "Commission ($),Fees ($),Accrued Interest ($),Amount ($),Settlement Date\n")
+    rows = ('05/01/2026,Joint,Z1,MERGER MER FROM 123#REOR M005 OLDCO (OLD),OLD,OLDCO,Cash,"",-10,"","","","",""\n'
+            '05/01/2026,Joint,Z1,MERGER MER PAYOUT #REOR M005 NEWCO (NEW),NEW,NEWCO,Cash,"",5,"","","","",""\n')
+    f = tmp_path / "Accounts_History.csv"; f.write_text(hdr + rows)
+    a = load_activity_csv(str(f))
+    assert dict(zip(a["ticker"], a["type"])) == {"OLD": "TRANSFER_OUT", "NEW": "TRANSFER_IN"}
+
+
+def test_managed_sleeve_accounts_excluded():
+    pos = load_positions_csv(POS_CSV)
+    pos.loc[pos["account_id"] == "222222222", "sleeve"] = None
+    pos.loc[(pos["account_id"] == "Z11111111") & (pos["ticker"] == "XLE"), "sleeve"] = \
+        "Strategic Advisers Tax-Managed US Large Cap SMA"
+    s = RebalanceSettings(target_mode="static", static_targets={"XLK": 0.5, "XLV": 0.5},
+                          drift_band=0.0, max_turnover=1.0)
+    plan = build_rebalance_plan(pos, synthetic_market()["adj_close"], s)
+    assert set(plan["trades"]["account_id"]) <= {"222222222"}
+    assert plan["summary"]["excluded_managed_value"] == pytest.approx(45000.0)
+
+
+def test_mvo_refuses_huge_universe():
+    s = RebalanceSettings(target_mode="mvo", max_mvo_assets=2)
+    with pytest.raises(ValueError, match="too many"):
+        build_rebalance_plan(load_positions_csv(POS_CSV), synthetic_market()["adj_close"], s)

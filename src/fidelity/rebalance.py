@@ -43,6 +43,9 @@ class RebalanceSettings:
     static_targets: dict[str, float] = field(default_factory=dict)
     unmanaged: str = "hold"                     # "hold" | "sell" — holdings outside the model
     accounts: list[str] = field(default_factory=list)          # empty → all accounts
+    managed_accounts: list[str] = field(default_factory=list)  # advisor-run accounts to leave alone
+    exclude_managed_sleeves: bool = True        # skip Fidelity SMA sleeves (Strategic Advisers etc.)
+    max_mvo_assets: int = 40
     cash_target_pct: float = 0.02
     drift_band: float = 0.02                    # absolute weight drift before trading
     min_trade_usd: float = 100.0
@@ -180,8 +183,15 @@ def build_rebalance_plan(
     pos = positions.copy()
     if s.accounts:
         pos = pos[pos["account_id"].astype(str).isin(s.accounts) | pos["account_name"].isin(s.accounts)]
+    managed_mask = pos["account_id"].astype(str).isin(s.managed_accounts) | pos["account_name"].isin(s.managed_accounts)
+    if s.exclude_managed_sleeves and "sleeve" in pos.columns:
+        # An account with any Strategic Advisers / SMA sleeve is advisor-run: leave all of it (cash too)
+        sma = pos["sleeve"].fillna("").str.contains(r"Strategic Advisers|\bSMA\b", case=False)
+        managed_mask |= pos["account_id"].isin(pos.loc[sma, "account_id"].unique())
+    excluded_value = float(pos.loc[managed_mask, "market_value"].sum())
+    pos = pos[~managed_mask]
     if pos.empty:
-        raise ValueError("No positions in the selected accounts")
+        raise ValueError("No self-directed positions in the selected accounts")
 
     # Latest price per ticker (broker price, else last close)
     last_close = adj_close.ffill().iloc[-1] if len(adj_close) else pd.Series(dtype=float)
@@ -194,6 +204,11 @@ def build_rebalance_plan(
 
     universe = list(s.static_targets) if s.target_mode == "static" else (
         s.model_universe or [t for t in held.index if t in adj_close.columns])
+    if s.target_mode == "mvo" and len(universe) > s.max_mvo_assets:
+        raise ValueError(
+            f"{len(universe)} holdings is too many to optimize with MVO (limit {s.max_mvo_assets}). "
+            "Set fidelity.rebalance.model_universe (e.g. your ETF list), use static_targets, "
+            "or restrict fidelity.rebalance.accounts / managed_accounts.")
     unmanaged = [t for t in held.index if t not in universe]
     unmanaged_value = float(held[unmanaged].sum()) if s.unmanaged == "hold" else 0.0
 
@@ -347,6 +362,7 @@ def build_rebalance_plan(
         "managed_value": managed_value,
         "unmanaged": unmanaged if s.unmanaged == "hold" else [],
         "unmanaged_value": unmanaged_value,
+        "excluded_managed_value": excluded_value,
         "n_trades": len(trade_df),
         "buy_value": float(trade_df.loc[trade_df["action"] == "BUY", "est_value"].sum()),
         "sell_value": float(-trade_df.loc[trade_df["action"] == "SELL", "est_value"].sum()),

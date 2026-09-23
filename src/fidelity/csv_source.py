@@ -83,6 +83,7 @@ def load_positions_csv(path: str, account_types: dict[str, str] | None = None) -
         "price": _money(get("Last Price")),
         "market_value": _money(get("Current Value")),
         "cost_basis": _money(get("Cost Basis Total")),
+        "sleeve": get("Sleeve name").map(lambda x: x.strip() if isinstance(x, str) and x.strip() else None),
     })
     df = df[df["account_id"].notna() & (df["ticker"] != "")]
 
@@ -106,7 +107,7 @@ def load_positions_csv(path: str, account_types: dict[str, str] | None = None) -
         agg = cash.groupby(["account_id", "account_name", "account_type"], as_index=False)["market_value"].sum()
         agg = agg.assign(ticker="CASH", description="Cash & core position", asset_kind="cash",
                          quantity=agg["market_value"], price=1.0, cost_basis=agg["market_value"],
-                         lots=[[] for _ in range(len(agg))])
+                         lots=[[] for _ in range(len(agg))], sleeve=None)
         df = pd.concat([df[df["asset_kind"] != "cash"], agg[df.columns]], ignore_index=True)
     logger.info(f"Loaded {len(df)} positions from {os.path.basename(path)}")
     return df
@@ -170,16 +171,28 @@ def load_activity_csv(paths: str | list[str]) -> pd.DataFrame:
             "amount": _money(get("Amount ($)", "Amount")),
             "description": action,
         })
+        # Mergers / spin-offs / other corporate actions that move shares: Fidelity
+        # signs Quantity (+ received, − delivered). Value them as share transfers.
+        corp = (df["type"] == "OTHER") & df["ticker"].notna() & df["quantity"].fillna(0).ne(0)
+        df.loc[corp & (df["quantity"] > 0), "type"] = "TRANSFER_IN"
+        df.loc[corp & (df["quantity"] < 0), "type"] = "TRANSFER_OUT"
         # Share transfers with no symbol are cash transfers
         no_sym = df["ticker"].isna()
         df.loc[no_sym & (df["type"] == "TRANSFER_IN"), "type"] = "CONTRIBUTION"
         df.loc[no_sym & (df["type"] == "TRANSFER_OUT"), "type"] = "WITHDRAWAL"
+        df["_file"] = len(frames)
         frames.append(df)
 
     if not frames:
         return empty_activities()
-    acts = finalize_activities(pd.concat(frames, ignore_index=True))
-    acts = acts.drop_duplicates()
+    allrows = pd.concat(frames, ignore_index=True)
+    # Overlapping date ranges repeat rows across files, but identical rows inside one
+    # file are genuine (e.g. two same-size fills). Keep each row max(count per file) times.
+    key = [c for c in allrows.columns if c != "_file"]
+    allrows["_k"] = pd.util.hash_pandas_object(allrows[key].astype(str), index=False)
+    allrows["_n"] = allrows.groupby(["_file", "_k"]).cumcount()
+    allrows = allrows.drop_duplicates(["_k", "_n"]).drop(columns=["_file", "_k", "_n"])
+    acts = finalize_activities(allrows)
     acts = acts[~acts["ticker"].map(is_cash_ticker)].reset_index(drop=True)
     logger.info(f"Loaded {len(acts)} activity rows from {len(paths)} file(s)")
     return acts

@@ -194,6 +194,9 @@ def generate_fidelity_report(
             ("Est. realized gain (taxable)", _usd(s["est_realized_gain"])),
             ("of which short-term", _usd(s["est_st_gain"])),
         ]))
+        if s.get("excluded_managed_value"):
+            parts.append(f"<p class='note'>Advisor-managed sleeves/accounts excluded from rebalancing: "
+                         f"{_usd(s['excluded_managed_value'])}.</p>")
         if s["unmanaged"]:
             parts.append(f"<p class='note'>Held outside the model and left untouched: "
                          f"{html.escape(', '.join(s['unmanaged']))} ({_usd(s['unmanaged_value'])}).</p>")

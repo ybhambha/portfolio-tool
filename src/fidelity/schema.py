@@ -25,6 +25,7 @@ POSITION_COLUMNS = [
     "market_value",
     "cost_basis",      # total cost basis for the position (NaN if unknown)
     "lots",            # list[dict] of tax lots (may be empty)
+    "sleeve",          # managed-account sleeve name (Fidelity SMA), else None
 ]
 
 ACTIVITY_COLUMNS = [
@@ -79,7 +80,7 @@ def finalize_positions(df: pd.DataFrame, account_types: dict[str, str] | None = 
     df = df.copy()
     for col in POSITION_COLUMNS:
         if col not in df.columns:
-            df[col] = [[] for _ in range(len(df))] if col == "lots" else pd.NA
+            df[col] = [[] for _ in range(len(df))] if col == "lots" else None
     for col in ["quantity", "price", "market_value", "cost_basis"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 

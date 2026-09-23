@@ -67,7 +67,8 @@ def settings_from_config(cfg: AppConfig) -> RebalanceSettings:
     r, o = cfg.fidelity.rebalance, cfg.optimizer
     return RebalanceSettings(
         target_mode=r.target_mode, model_universe=r.model_universe, static_targets=r.static_targets,
-        unmanaged=r.unmanaged, accounts=r.accounts, cash_target_pct=r.cash_target_pct,
+        unmanaged=r.unmanaged, accounts=r.accounts, managed_accounts=r.managed_accounts,
+        exclude_managed_sleeves=r.exclude_managed_sleeves, max_mvo_assets=r.max_mvo_assets, cash_target_pct=r.cash_target_pct,
         drift_band=r.drift_band, min_trade_usd=r.min_trade_usd, max_turnover=r.max_turnover,
         fractional_shares=r.fractional_shares, avoid_short_term_gains=r.avoid_short_term_gains,
         tlh_loss_pct=r.tlh_loss_pct, tlh_min_usd=r.tlh_min_usd,
@@ -125,7 +126,10 @@ def run_fidelity(
 
     plan = None
     if rebalance:
-        plan = build_rebalance_plan(positions, md["adj_close"], s, activities)
+        try:
+            plan = build_rebalance_plan(positions, md["adj_close"], s, activities)
+        except ValueError as e:
+            warnings.append(f"Rebalance skipped: {e}")
 
     out_dir = fc.output_dir
     stamp = datetime.now().strftime("%Y%m%d")
